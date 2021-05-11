@@ -1,0 +1,18 @@
+# This is the buildspec file for PRs that are merged
+version: 0.2
+
+env:
+  variables:
+    USER: UPDATE_WITH_USER
+    BUCKET_NAME: bucket-name-here
+  parameter-store:
+    TOKEN: PATH_TO_SSM_WITH_GITHUB_TOKEN
+phases:
+  build:
+    commands:
+      - mkdir /tmp/merge
+      - aws s3 cp s3://$BUCKET_NAME/$CODEBUILD_SOURCE_VERSION/plan/plan-out .
+      - terraform init
+      - terraform apply -auto-approve -no-color plan-out 2>&1 | tee /tmp/merge/apply-result
+      - aws s3 cp /tmp/merge/apply-result s3://$BUCKET_NAME/$CODEBUILD_SOURCE_VERSION/merge/
+      - sh /opt/github-callback.sh "$(cat /tmp/merge/apply-result)"

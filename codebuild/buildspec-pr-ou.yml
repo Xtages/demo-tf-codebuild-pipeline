@@ -1,0 +1,17 @@
+# This is the buildspec file for PRs that are open or updated
+version: 0.2
+
+env:
+  variables:
+    USER: UPDATE_WITH_USER
+    BUCKET_NAME: bucket-name-here
+  parameter-store:
+    TOKEN: PATH_TO_SSM_WITH_GITHUB_TOKEN
+phases:
+  build:
+    commands:
+      - mkdir /tmp/plan
+      - terraform init
+      - terraform plan -out=/tmp/plan/plan-out -no-color 2>&1 | tee /tmp/plan/describe-plan
+      - aws s3 cp /tmp/plan/ s3://$BUCKET_NAME/$CODEBUILD_SOURCE_VERSION/plan/ --recursive
+      - sh /opt/github-callback.sh "$(cat /tmp/plan/describe-plan)"
